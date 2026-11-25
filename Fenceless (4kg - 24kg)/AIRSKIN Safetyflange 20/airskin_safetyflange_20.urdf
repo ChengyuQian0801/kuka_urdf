@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<robot name="kuka_airskin_safetyflange_20">
+  <material name="kuka_orange"><color rgba="1.00 0.40 0.00 1.0"/></material>
+  <material name="kuka_dark_gray"><color rgba="0.20 0.20 0.20 1.0"/></material>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0.000456 0.000762 0.060825" rpy="0 0 0"/>
+      <mass value="160.000"/>
+      <inertia ixx="0.576894" ixy="-0.001368" ixz="0.000047" iyy="0.571770" iyz="0.002231" izz="0.705175"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/visual/base_link.stl"/></geometry>
+      <material name="kuka_dark_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/visual/base_link.stl"/></geometry>
+    </collision>
+  </link>
+
+  <link name="tool0"/>
+
+  <joint name="base_link-tool0" type="fixed">
+    <parent link="base_link"/>
+    <child link="tool0"/>
+    <origin xyz="0.000000 0.000000 0.000000" rpy="0 1.57079632679 0"/>
+  </joint>
+</robot>

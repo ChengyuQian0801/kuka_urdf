@@ -6,8 +6,8 @@
   <link name="base_link">
     <inertial>
       <origin xyz="-0.061007 0.003750 0.182022" rpy="0 0 0"/>
-      <mass value="160.000"/>
-      <inertia ixx="6.728743" ixy="0.120353" ixz="0.359209" iyy="7.978382" iyz="-0.027650" izz="8.083208"/>
+      <mass value="106.667"/>
+      <inertia ixx="4.485828" ixy="0.080236" ixz="0.239473" iyy="5.318921" iyz="-0.018434" izz="5.388805"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -130,7 +130,7 @@
     <origin xyz="0.000000 0.000000 0.000000" rpy="0 0 0"/>
     <axis xyz="0.0 0.0 -1.0"/>
     <limit lower="-3.228859" upper="3.228859" effort="4250.0" velocity="2.447255"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a2" type="revolute">
@@ -139,7 +139,7 @@
     <origin xyz="0.350000 0.000000 0.815000" rpy="0 0 0"/>
     <axis xyz="0.0 1.0 0.0"/>
     <limit lower="-0.785398" upper="2.181662" effort="4250.0" velocity="2.122698"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a3" type="revolute">
@@ -148,7 +148,7 @@
     <origin xyz="0.000000 0.000000 0.850000" rpy="0 0 0"/>
     <axis xyz="0.0 1.0 0.0"/>
     <limit lower="-3.665191" upper="1.186824" effort="4250.0" velocity="2.434027"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a4" type="revolute">
@@ -157,7 +157,7 @@
     <origin xyz="1.220000 0.000000 0.145000" rpy="0 0 0"/>
     <axis xyz="-1.0 0.0 -0.0"/>
     <limit lower="-6.108652" upper="6.108652" effort="300.0" velocity="4.535175"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a5" type="revolute">
@@ -166,7 +166,7 @@
     <origin xyz="0.000000 0.000000 0.000000" rpy="0 0 0"/>
     <axis xyz="0.0 1.0 0.0"/>
     <limit lower="-2.076942" upper="2.076942" effort="380.0" velocity="4.278550"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a6" type="revolute">
@@ -175,7 +175,7 @@
     <origin xyz="0.170000 0.000000 0.000000" rpy="0 0 0"/>
     <axis xyz="-1.0 0.0 -0.0"/>
     <limit lower="-6.108652" upper="6.108652" effort="200.0" velocity="5.625441"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="link_6-tool0" type="fixed">

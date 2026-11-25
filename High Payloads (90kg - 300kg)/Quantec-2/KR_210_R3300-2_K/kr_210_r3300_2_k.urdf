@@ -6,8 +6,8 @@
   <link name="base_link">
     <inertial>
       <origin xyz="-0.116283 0.000795 0.107805" rpy="0 0 0"/>
-      <mass value="160.000"/>
-      <inertia ixx="5.009960" ixy="0.080742" ixz="0.804963" iyy="7.425616" iyz="-0.015878" izz="10.547593"/>
+      <mass value="320.000"/>
+      <inertia ixx="10.019919" ixy="0.161485" ixz="1.609926" iyy="14.851232" iyz="-0.031757" izz="21.095186"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -23,8 +23,8 @@
   <link name="link_1">
     <inertial>
       <origin xyz="0.209468 -0.056511 0.449436" rpy="0 0 0"/>
-      <mass value="210.000"/>
-      <inertia ixx="9.913498" ixy="-1.170809" ixz="-0.823868" iyy="19.630487" iyz="-1.737000" izz="18.364273"/>
+      <mass value="420.000"/>
+      <inertia ixx="19.826997" ixy="-2.341618" ixz="-1.647736" iyy="39.260974" iyz="-3.474000" izz="36.728546"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -40,8 +40,8 @@
   <link name="link_2">
     <inertial>
       <origin xyz="-0.001751 -0.265398 0.590261" rpy="0 0 0"/>
-      <mass value="260.000"/>
-      <inertia ixx="45.425988" ixy="-0.034652" ixz="-0.196255" iyy="44.299798" iyz="2.671867" izz="4.882196"/>
+      <mass value="520.000"/>
+      <inertia ixx="90.851975" ixy="-0.069304" ixz="-0.392511" iyy="88.599596" iyz="5.343735" izz="9.764392"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -57,8 +57,8 @@
   <link name="link_3">
     <inertial>
       <origin xyz="0.155191 -0.006349 0.147449" rpy="0 0 0"/>
-      <mass value="200.000"/>
-      <inertia ixx="5.151837" ixy="0.761117" ixz="0.348193" iyy="13.628571" iyz="-0.270233" izz="14.458465"/>
+      <mass value="400.000"/>
+      <inertia ixx="10.303675" ixy="1.522234" ixz="0.696386" iyy="27.257143" iyz="-0.540465" izz="28.916929"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -74,8 +74,8 @@
   <link name="link_4">
     <inertial>
       <origin xyz="-0.275985 0.002250 0.000020" rpy="0 0 0"/>
-      <mass value="45.000"/>
-      <inertia ixx="0.358741" ixy="-0.017808" ixz="-0.000101" iyy="0.845634" iyz="0.000007" izz="0.847756"/>
+      <mass value="90.000"/>
+      <inertia ixx="0.717483" ixy="-0.035616" ixz="-0.000203" iyy="1.691269" iyz="0.000013" izz="1.695512"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -91,8 +91,8 @@
   <link name="link_5">
     <inertial>
       <origin xyz="0.060224 0.034229 -0.000208" rpy="0 0 0"/>
-      <mass value="40.000"/>
-      <inertia ixx="0.343525" ixy="0.055164" ixz="-0.000701" iyy="0.357094" iyz="-0.000773" izz="0.454366"/>
+      <mass value="80.000"/>
+      <inertia ixx="0.687049" ixy="0.110329" ixz="-0.001401" iyy="0.714188" iyz="-0.001547" izz="0.908733"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -108,8 +108,8 @@
   <link name="link_6">
     <inertial>
       <origin xyz="-0.015599 0.000043 -0.000150" rpy="0 0 0"/>
-      <mass value="25.000"/>
-      <inertia ixx="0.108938" ixy="0.000007" ixz="-0.000005" iyy="0.068937" iyz="0.000003" izz="0.069956"/>
+      <mass value="50.000"/>
+      <inertia ixx="0.217877" ixy="0.000014" ixz="-0.000010" iyy="0.137875" iyz="0.000006" izz="0.139912"/>
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -129,8 +129,8 @@
     <child link="link_1"/>
     <origin xyz="0.000000 0.000000 0.000000" rpy="0 0 0"/>
     <axis xyz="0.0 0.0 -1.0"/>
-    <limit lower="-3.228859" upper="3.228859" effort="6500.0" velocity="2.617994"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <limit lower="-3.228859" upper="3.228859" effort="13000.0" velocity="3.000000"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a2" type="revolute">
@@ -138,8 +138,8 @@
     <child link="link_2"/>
     <origin xyz="0.730000 0.000000 0.550000" rpy="0 0 0"/>
     <axis xyz="0.0 1.0 0.0"/>
-    <limit lower="-0.872665" upper="1.483530" effort="7500.0" velocity="2.617994"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <limit lower="-0.523599" upper="2.792527" effort="15000.0" velocity="3.000000"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a3" type="revolute">
@@ -147,8 +147,8 @@
     <child link="link_3"/>
     <origin xyz="0.000000 0.000000 1.350000" rpy="0 0 0"/>
     <axis xyz="0.0 1.0 0.0"/>
-    <limit lower="-3.665191" upper="1.134464" effort="5000.0" velocity="2.617994"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <limit lower="-3.665191" upper="1.361357" effort="10000.0" velocity="3.000000"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a4" type="revolute">
@@ -156,8 +156,8 @@
     <child link="link_4"/>
     <origin xyz="1.220000 0.000000 0.115000" rpy="0 0 0"/>
     <axis xyz="-1.0 0.0 -0.0"/>
-    <limit lower="-6.108652" upper="6.108652" effort="2000.0" velocity="2.617994"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <limit lower="-6.108652" upper="6.108652" effort="4000.0" velocity="3.000000"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a5" type="revolute">
@@ -165,8 +165,8 @@
     <child link="link_5"/>
     <origin xyz="0.000000 0.000000 0.000000" rpy="0 0 0"/>
     <axis xyz="0.0 1.0 0.0"/>
-    <limit lower="-2.181662" upper="2.181662" effort="1400.0" velocity="2.617994"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <limit lower="-2.138028" upper="2.138028" effort="2800.0" velocity="3.000000"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="joint_a6" type="revolute">
@@ -174,8 +174,8 @@
     <child link="link_6"/>
     <origin xyz="0.240000 0.000000 0.000000" rpy="0 0 0"/>
     <axis xyz="-1.0 0.0 -0.0"/>
-    <limit lower="-6.108652" upper="6.108652" effort="850.0" velocity="2.617994"/>
-    <dynamics damping="10.0" friction="2.0"/>
+    <limit lower="-6.108652" upper="6.108652" effort="1700.0" velocity="3.000000"/>
+    <dynamics damping="5.0" friction="1.0"/>
   </joint>
 
   <joint name="link_6-tool0" type="fixed">

@@ -1,4 +1,4 @@
-"""Batch convert and validate all 127 Medium and High Payload KUKA.Sim 4.3 .vcmx robots to URDF packages."""
+"""Batch convert and validate all KUKA.Sim 4.3 .vcmx robots in vcmx_library to URDF packages."""
 import os, glob, zipfile, struct, math, re
 import xml.etree.ElementTree as ET
 
@@ -14,8 +14,6 @@ def mat_mul(A, B):
     return [[sum(A[i][k] * B[k][j] for k in range(4)) for j in range(4)] for i in range(4)]
 
 def mat_inv_rigid(M):
-    # Inverse of 4x4 row-vector rigid matrix (or general 3x3 + translation)
-    # Wait: some features may have scale or reflection; use general 3x3 inverse via cofactor!
     A = [row[:3] for row in M[:3]]
     det = (A[0][0]*(A[1][1]*A[2][2] - A[1][2]*A[2][1])
          - A[0][1]*(A[1][0]*A[2][2] - A[1][2]*A[2][0])
@@ -154,15 +152,14 @@ def parse_mada(z):
         dyn = {}
         for m in re.finditer(r"\$DYN_DAT\[(\d+)\]\s*=\s*([0-9\.\-\+eE]+)", txt):
             dyn[int(m.group(1))] = float(m.group(2))
-        for k in range(1, 7):
-            if 36 + k in dyn and dyn[36 + k] > 10.0:
+        for k in range(1, 8):
+            if 36 + k in dyn and dyn[36 + k] > 5.0:
                 mada["torq"][k] = dyn[36 + k]
-            if 48 + k in dyn and dyn[48 + k] > 0.5:
+            if 48 + k in dyn and dyn[48 + k] > 0.2:
                 mada["mass"][k] = dyn[48 + k]
     return mada
 
 def eig_sym_3x3(I):
-    # Characteristic polynomial / closed-form check for 3x3 SPD: Sylvester's criterion (leading principal minors > 0)
     ixx, ixy, ixz, iyy, iyz, izz = I
     m1 = ixx
     m2 = ixx * iyy - ixy * ixy
@@ -181,7 +178,6 @@ def convert_one_vcmx(vcmx_path, out_dir):
         if not mada["has_mada"]:
             warnings.append("No embedded _machine.dat/_robcor.dat (using component.rsc limits/defaults)")
 
-        # Cache all 3ds meshes in archive
         mesh_cache = {}
         for info in z.infolist():
             if not info.is_dir() and "/" not in info.filename and "\\" not in info.filename:
@@ -190,7 +186,6 @@ def convert_one_vcmx(vcmx_path, out_dir):
                     mesh_cache[info.filename] = read_3ds_bytes(data)
                     mesh_cache[info.filename.lower()] = mesh_cache[info.filename]
 
-    # Extract rKinArticulated parameters + root VariableSpace parameters
     kin = {}
     def collect_vars(node):
         if node["header"].startswith('Functionality "rKinArticulated'):
@@ -224,7 +219,6 @@ def convert_one_vcmx(vcmx_path, out_dir):
         try:
             return float(s)
         except ValueError:
-            # Handle simple arithmetic like stroke_a3-1000
             for k, v in kin.items():
                 s = s.replace("Kinematics::" + k, str(v)).replace(k, str(v))
             try:
@@ -262,12 +256,10 @@ def convert_one_vcmx(vcmx_path, out_dir):
 
     def dof_rot_and_axis(axis_type, val, is_trans=False):
         at = int(axis_type) if axis_type is not None else 2
-        if is_trans:
-            axes = {0: (1,0,0), 1: (0,1,0), 2: (0,0,1), 4: (-1,0,0), 5: (0,-1,0), 6: (0,0,-1)}
-            ax = axes.get(at, (0,0,1))
-            return Tx(ax[0]*val if ax[0] else 0), ax
         axes = {0: (1,0,0), 1: (0,1,0), 2: (0,0,1), 4: (-1,0,0), 5: (0,-1,0), 6: (0,0,-1)}
         ax = axes.get(at, (0,0,1))
+        if is_trans:
+            return mat_id(), ax
         if at == 0: return Rx(val), ax
         if at == 1: return Ry(val), ax
         if at == 2: return Rz(val), ax
@@ -276,8 +268,6 @@ def convert_one_vcmx(vcmx_path, out_dir):
         if at == 6: return Rz(-val), ax
         return mat_id(), (0,0,1)
 
-    # Collect link frames & meshes in world coordinates at default pose
-    # Active links are base_link + rSimLink nodes named A1..A6 (or RobRoot/Height merged into base_link, A1_1 merged into A1)
     link_world_origin = {"base_link": (0.0, 0.0, 0.0)}
     link_world_axis = {}
     link_parent = {}
@@ -285,7 +275,7 @@ def convert_one_vcmx(vcmx_path, out_dir):
     link_tris_world = {"base_link": ([], [])}
     active_order = ["base_link"]
 
-    SKIP_FEATURES = {"ShowEnvelope", "ShowProfile", "Base_plate", "Adapter_A6", "Mediabox_small"}
+    SKIP_FEATURES = {"ShowEnvelope", "ShowProfile", "Base_plate", "Adapter_A6", "Mediabox_small", "MonitoringSpaces"}
 
     def add_mesh_to_link(target_link, uri, M_cur):
         key = uri if uri in mesh_cache else uri.lower()
@@ -306,14 +296,13 @@ def convert_one_vcmx(vcmx_path, out_dir):
 
     def walk_features(fnode, M_parent, target_link):
         fname = get_prop(fnode, "Name") or ""
-        if fname in SKIP_FEATURES or "Envelope" in fname or "Profile" in fname:
+        if fname in SKIP_FEATURES or "Envelope" in fname or "Profile" in fname or "MonitoringSpace" in fname:
             return
         M_cur = M_parent
         mat_s = get_prop(fnode, "Matrix")
         if mat_s:
             M_cur = mat_mul(mat_from_str(mat_s), M_parent)
         else:
-            # Check if rTransformFeature has an Expression child
             for ch in fnode["children"]:
                 if ch["header"].startswith("VariableSpace"):
                     for vch in ch["children"]:
@@ -335,14 +324,12 @@ def convert_one_vcmx(vcmx_path, out_dir):
         h = node["header"]
         if h == 'Node "rSimLink"':
             raw_name = get_prop(node, "Name") or ""
-            # Skip dresspack hose sphere links
-            if re.match(r"^Link\d+$", raw_name) or raw_name in ("ConstantOffset", "LinkN", "CableTop", "CableTurn", "CableBottom"):
+            if re.match(r"^(Link\d+[A-Z]?|ConstantOffset|LinkN|CableTop|CableTurn|CableBottom|CablesOffset|CableLink|VisPart_\d+|Pin_\d+|Schlepp.*)$", raw_name):
                 return
             dof_node = next((c for c in node["children"] if c["header"].startswith("Dof ")), None)
             dof_type = dof_node["header"].split('"')[1] if (dof_node and '"' in dof_node["header"]) else "Fixed"
             dof_name = get_prop(dof_node, "Name") if dof_node else ""
 
-            # Find Offset expression
             expr = None
             for c in node["children"]:
                 if c["header"].startswith("Offset"):
@@ -360,10 +347,10 @@ def convert_one_vcmx(vcmx_path, out_dir):
             jv = float(get_prop(dof_node, "JointValue") or 0.0) if dof_node else 0.0
             is_trans = (dof_type == "Translational")
 
-            # Determine if this rSimLink is a primary joint A1..A6 (including Dummy_JET where Dof is Custom named A1..A6)
-            is_primary_axis = re.match(r"^A[1-6]$", raw_name) is not None
+            # Support A1..A7 (including 7-DOF LBR iiwa) + KR-DELTA (Arm1..3, J4)
+            delta_map = {"Arm1": 1, "Arm2": 2, "Arm3": 3, "J4": 4}
+            is_primary_axis = (re.match(r"^A[1-7]$", raw_name) is not None) or (raw_name in delta_map)
             if is_primary_axis and dof_type == "Custom":
-                # In Dummy_JET, Custom Dof expression has Rz(-VALUE) or Ry(VALUE)
                 cexpr = ""
                 for c in (dof_node["children"] if dof_node else []):
                     if c["header"].startswith("Expression"):
@@ -375,25 +362,24 @@ def convert_one_vcmx(vcmx_path, out_dir):
                 elif "Rz(-VALUE)" in cexpr:
                     at = "6"
                 else:
-                    at = {"A1": "6", "A2": "1", "A3": "1", "A4": "6", "A5": "2", "A6": "6"}.get(raw_name, "6")
+                    at = {"A1": "6", "A2": "1", "A3": "1", "A4": "6", "A5": "2", "A6": "6", "A7": "6"}.get(raw_name, "6")
 
             M_rot, loc_ax = dof_rot_and_axis(at, jv, is_trans=is_trans)
             M_node = mat_mul(M_rot, M_pre)
 
             if is_primary_axis:
-                idx = int(raw_name[1])
+                idx = delta_map[raw_name] if raw_name in delta_map else int(raw_name[1])
                 lname = f"link_{idx}"
-                active_order.append(lname)
-                link_parent[lname] = cur_active
-                # World origin of joint is M_pre translation in meters
+                if lname not in active_order:
+                    active_order.append(lname)
+                link_parent[lname] = "base_link" if raw_name in ("Arm1", "Arm2", "Arm3") else cur_active
                 link_world_origin[lname] = (M_pre[3][0] / 1000.0, M_pre[3][1] / 1000.0, M_pre[3][2] / 1000.0)
-                # Transform local rotation axis by M_pre[:3,:3] into world axis!
                 wx = loc_ax[0]*M_pre[0][0] + loc_ax[1]*M_pre[1][0] + loc_ax[2]*M_pre[2][0]
                 wy = loc_ax[0]*M_pre[0][1] + loc_ax[1]*M_pre[1][1] + loc_ax[2]*M_pre[2][1]
                 wz = loc_ax[0]*M_pre[0][2] + loc_ax[1]*M_pre[1][2] + loc_ax[2]*M_pre[2][2]
                 anorm = math.sqrt(wx*wx + wy*wy + wz*wz) or 1.0
                 link_world_axis[lname] = (round(wx/anorm, 4), round(wy/anorm, 4), round(wz/anorm, 4))
-                # Extract rsc MinLimit / MaxLimit / MaxSpeed from dof_node as fallback when _machine.dat is absent
+
                 rsc_min, rsc_max, rsc_spd = None, None, None
                 if dof_node:
                     for dc in dof_node["children"]:
@@ -417,7 +403,6 @@ def convert_one_vcmx(vcmx_path, out_dir):
                 link_world_origin["tool0"] = (M_node[3][0] / 1000.0, M_node[3][1] / 1000.0, M_node[3][2] / 1000.0)
                 next_active = cur_active
             else:
-                # Helper link (RobRoot, Height, A1_1 counterbalance cylinder): merge visual meshes into cur_active
                 next_active = cur_active
 
             for ch in node["children"]:
@@ -450,14 +435,29 @@ def convert_one_vcmx(vcmx_path, out_dir):
 
     walk_nodes(tree, mat_id(), "base_link")
 
-    # Export meshes and build URDF
     vis_dir = os.path.join(out_dir, "meshes", "visual")
     os.makedirs(vis_dir, exist_ok=True)
-    robot_slug = re.sub(r"[^a-zA-Z0-9_]+", "_", os.path.splitext(os.path.basename(vcmx_path))[0]).strip("_").lower()
+    base_fn = os.path.splitext(os.path.basename(vcmx_path))[0]
+    robot_slug = re.sub(r"[^a-zA-Z0-9_]+", "_", base_fn).strip("_").lower()
 
-    DEFAULT_MASS = {"base_link": 160.0, "link_1": 210.0, "link_2": 260.0, "link_3": 200.0, "link_4": 45.0, "link_5": 40.0, "link_6": 25.0}
-    DEFAULT_TORQ = {1: 6500.0, 2: 7500.0, 3: 5000.0, 4: 2000.0, 5: 1400.0, 6: 850.0}
-    DEFAULT_LIMITS = {1: (-185.0, 185.0), 2: (-140.0, -5.0), 3: (-120.0, 155.0), 4: (-350.0, 350.0), 5: (-125.0, 125.0), 6: (-350.0, 350.0)}
+    # Scale fallback masses/torques by payload class when _robcor.dat is absent
+    m_pay = re.search(r"(?:KR|iisy|iiwa)[_\s]*(\d+)", base_fn, re.IGNORECASE)
+    payload_kg = float(m_pay.group(1)) if m_pay else 90.0
+    scale = max(0.05, min(2.0, payload_kg / 90.0))
+
+    DEFAULT_MASS = {
+        "base_link": 160.0 * scale, "link_1": 210.0 * scale, "link_2": 260.0 * scale,
+        "link_3": 200.0 * scale, "link_4": 45.0 * scale, "link_5": 40.0 * scale,
+        "link_6": 25.0 * scale, "link_7": 12.0 * scale,
+    }
+    DEFAULT_TORQ = {
+        1: 6500.0 * scale, 2: 7500.0 * scale, 3: 5000.0 * scale,
+        4: 2000.0 * scale, 5: 1400.0 * scale, 6: 850.0 * scale, 7: 400.0 * scale,
+    }
+    DEFAULT_LIMITS = {
+        1: (-185.0, 185.0), 2: (-140.0, -5.0), 3: (-120.0, 155.0),
+        4: (-350.0, 350.0), 5: (-125.0, 125.0), 6: (-350.0, 350.0), 7: (-175.0, 175.0),
+    }
 
     link_props = {}
     total_tris = 0
@@ -465,7 +465,6 @@ def convert_one_vcmx(vcmx_path, out_dir):
         verts_w, faces_w = link_tris_world.get(lname, ([], []))
         ox, oy, oz = link_world_origin[lname]
         if not faces_w:
-            # Create a tiny 1cm placeholder cube if a link has 0 visual meshes (e.g. virtual joint frame)
             warnings.append(f"{lname} had 0 visual meshes; created 1cm placeholder box")
             s = 0.005
             verts_local = [(-s,-s,-s),(s,-s,-s),(s,s,-s),(-s,s,-s),(-s,-s,s),(s,-s,s),(s,s,s),(-s,s,s)]
@@ -478,7 +477,7 @@ def convert_one_vcmx(vcmx_path, out_dir):
         total_tris += len(faces_w)
 
         idx = link_dof_meta[lname]["idx"] if lname in link_dof_meta else 0
-        mass = mada["mass"].get(idx, DEFAULT_MASS.get(lname, 50.0))
+        mass = mada["mass"].get(idx, DEFAULT_MASS.get(lname, 20.0 * scale))
 
         tot_a = 0.0
         cx = cy = cz = 0.0
@@ -506,14 +505,12 @@ def convert_one_vcmx(vcmx_path, out_dir):
             ixy -= w * dx * dy
             ixz -= w * dx * dz
             iyz -= w * dy * dz
-        # Regularize tiny diagonal floor so 100% guaranteed SPD
         eps_i = max(1e-4, 0.001 * mass)
         ixx += eps_i; iyy += eps_i; izz += eps_i
         I_tup = (ixx, ixy, ixz, iyy, iyz, izz)
         assert eig_sym_3x3(I_tup), f"Non-SPD inertia on {lname}"
         link_props[lname] = dict(mass=mass, com=(cx, cy, cz), I=I_tup, tris=len(faces_w))
 
-    # Build URDF XML
     ulines = [
         '<?xml version="1.0"?>',
         f'<robot name="kuka_{robot_slug}">',
@@ -564,12 +561,11 @@ def convert_one_vcmx(vcmx_path, out_dir):
             hi = (meta["rsc_max"] / 1000.0) if meta["rsc_max"] is not None else 2.0
             if lo >= hi: lo, hi = -2.0, 2.0
             vel = (meta["rsc_spd"] / 1000.0) if (meta["rsc_spd"] and meta["rsc_spd"] > 0) else 2.0
-            eff = 5000.0
+            eff = 5000.0 * scale
         else:
             d_lo, d_hi = DEFAULT_LIMITS.get(idx, (-180.0, 180.0))
             lo_deg = mada["softn"].get(idx, meta["rsc_min"] if meta["rsc_min"] is not None else d_lo)
             hi_deg = mada["softp"].get(idx, meta["rsc_max"] if meta["rsc_max"] is not None else d_hi)
-            # Shift limits relative to default pose JointValue if needed (e.g. A2 upright = -90 deg)
             jv = meta["jv"]
             lo = math.radians(lo_deg - jv)
             hi = math.radians(hi_deg - jv)
@@ -581,8 +577,8 @@ def convert_one_vcmx(vcmx_path, out_dir):
             elif meta["rsc_spd"] and meta["rsc_spd"] > 0:
                 vel = math.radians(meta["rsc_spd"])
             else:
-                vel = 2.5
-            eff = mada["torq"].get(idx, DEFAULT_TORQ.get(idx, 2000.0))
+                vel = 3.0
+            eff = mada["torq"].get(idx, DEFAULT_TORQ.get(idx, 1000.0 * scale))
 
         ulines += [
             f'  <joint name="joint_a{idx}" type="{jtype}">',
@@ -591,7 +587,7 @@ def convert_one_vcmx(vcmx_path, out_dir):
             f'    <origin xyz="{rx:.6f} {ry:.6f} {rz:.6f}" rpy="0 0 0"/>',
             f'    <axis xyz="{ax[0]} {ax[1]} {ax[2]}"/>',
             f'    <limit lower="{lo:.6f}" upper="{hi:.6f}" effort="{eff:.1f}" velocity="{vel:.6f}"/>',
-            '    <dynamics damping="10.0" friction="2.0"/>',
+            '    <dynamics damping="5.0" friction="1.0"/>',
             '  </joint>',
             '',
         ]
@@ -612,7 +608,6 @@ def convert_one_vcmx(vcmx_path, out_dir):
     with open(urdf_file, "w", encoding="utf-8") as f:
         f.write("\n".join(ulines) + "\n")
 
-    # Run all 6 verification checks
     parsed = ET.parse(urdf_file).getroot()
     for mel in parsed.findall(".//mesh"):
         mp = os.path.join(out_dir, mel.attrib["filename"])
@@ -658,7 +653,7 @@ if __name__ == "__main__":
                 res = convert_one_vcmx(vf, out_dir)
                 res["rel"] = rel
                 results.append(res)
-                if i % 20 == 0 or i == len(vcmx_files):
+                if i % 25 == 0 or i == len(vcmx_files):
                     print(f"[{i:3d}/{len(vcmx_files)}] OK: {rel} ({res['n_joints']} DOF, {res['total_tris']} tris)")
             except Exception as e:
                 failures.append((rel, str(e)))
@@ -668,8 +663,8 @@ if __name__ == "__main__":
 
         rep_path = os.path.join(out_root, "BATCH_CONVERSION_REPORT.md")
         with open(rep_path, "w", encoding="utf-8") as rf:
-            rf.write("# KUKA.Sim 4.3 Medium & High Payloads — Batch URDF Conversion & Verification Report\n\n")
-            rf.write(f"- **Total `.vcmx` robots processed:** {len(vcmx_files)}\n")
+            rf.write("# KUKA.Sim 4.3 URDF Library — Batch Conversion & Verification Report\n\n")
+            rf.write(f"- **Total `.vcmx` models processed:** {len(vcmx_files)}\n")
             rf.write(f"- **Succeeded (passed all 6 verification checks):** {len(results)} / {len(vcmx_files)}\n")
             rf.write(f"- **With embedded factory `_machine.dat` / `_robcor.dat`:** {sum(1 for r in results if r['has_mada'])} / {len(results)}\n")
             rf.write(f"- **Failed:** {len(failures)}\n\n")
